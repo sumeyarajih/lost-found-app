@@ -4,6 +4,7 @@ import '../constants/color.dart';
 import '../constants/text_style.dart';
 import '../widget/bottomNavbar.dart';
 import '../widget/cardPost.dart';
+import 'allPost.dart';
 import 'addPost.dart';
 import 'profile.dart';
 
@@ -97,6 +98,7 @@ class HomeContent extends StatelessWidget {
         'location': 'Public Library',
         'date': 'Jan 18, 2024',
         'status': 'Active',
+        'imageUrl': 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=200&auto=format&fit=crop',
       },
       {
         'title': 'Lost iPhone 13',
@@ -105,6 +107,7 @@ class HomeContent extends StatelessWidget {
         'location': 'Subway Line A',
         'date': 'Jan 20, 2024',
         'status': 'Claimed',
+        'imageUrl': 'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?q=80&w=200&auto=format&fit=crop',
       },
       {
         'title': 'Found Car Keys',
@@ -113,6 +116,7 @@ class HomeContent extends StatelessWidget {
         'location': 'Town Mall',
         'date': 'Jan 22, 2024',
         'status': 'Active',
+        'imageUrl': 'https://images.unsplash.com/photo-1605462863863-10d9e47e15ee?q=80&w=200&auto=format&fit=crop',
       },
     ];
 
@@ -156,7 +160,15 @@ class HomeContent extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Recent Posts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              TextButton(onPressed: () {}, child: const Text('See All', style: TextStyle(color: AppColors.primary))),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AllPostsScreen()),
+                  );
+                }, 
+                child: const Text('See All', style: TextStyle(color: AppColors.primary)),
+              ),
             ],
           ),
         ),

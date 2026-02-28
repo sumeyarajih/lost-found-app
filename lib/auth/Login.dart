@@ -47,8 +47,38 @@ class _LoginScreenState extends State<LoginScreen> {
         await splashProvider.markSplashCompleted();
 
         if (mounted) {
-          // Navigate to home screen or main app
-          Navigator.pushReplacementNamed(context, '/home');
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 60),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Login Successful!',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('Welcome back to Lost & Found.'),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close dialog
+                        Navigator.pushReplacementNamed(context, '/home');
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                      child: const Text('Continue', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
       }
     } on AuthException catch (e) {

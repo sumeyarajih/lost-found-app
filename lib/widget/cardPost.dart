@@ -8,7 +8,10 @@ class CardPost extends StatelessWidget {
   final String location;
   final String date;
   final String status; // 'Active' or 'Claimed'
+  final bool isOwner;
   final VoidCallback? onClaim;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const CardPost({
     super.key,
@@ -18,7 +21,10 @@ class CardPost extends StatelessWidget {
     required this.location,
     required this.date,
     required this.status,
+    this.isOwner = false,
     this.onClaim,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -51,7 +57,24 @@ class CardPost extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isClaimed)
+                if (isOwner)
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                        onPressed: onEdit,
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.only(right: 8),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                        onPressed: onDelete,
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                  )
+                else if (isClaimed)
                   const Text(
                     'CLAIMED',
                     style: TextStyle(
@@ -81,14 +104,14 @@ class CardPost extends StatelessWidget {
               children: [
                 const Icon(Icons.location_on, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
-                Text(location, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Expanded(child: Text(location, style: const TextStyle(color: Colors.grey, fontSize: 12), overflow: TextOverflow.ellipsis)),
                 const SizedBox(width: 16),
                 const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
                 Text(date, style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
-            if (!isClaimed) ...[
+            if (!isClaimed && !isOwner) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lost_found_app/auth/Login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/color.dart';
 import '../constants/text_style.dart';
 import '../Services/auth_service.dart';
-import '../auth/Login.dart';
+import '../widget/cardPost.dart';
+import 'editPost.dart';
+
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -62,7 +65,12 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  _buildProfileOption(Icons.post_add, 'My Posts', () {}),
+                  _buildProfileOption(Icons.post_add, 'My Posts', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MyPostsScreen()),
+                    );
+                  }),
                   _buildProfileOption(Icons.settings, 'Settings', () {}),
                   _buildProfileOption(Icons.help_outline, 'Help & Support', () {}),
                   _buildProfileOption(Icons.logout, 'Logout', () async {
@@ -96,6 +104,88 @@ class ProfileScreen extends StatelessWidget {
       ),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
+    );
+  }
+}
+
+class MyPostsScreen extends StatelessWidget {
+  const MyPostsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Mock user's posts
+    final List<Map<String, dynamic>> myPosts = [
+      {
+        'title': 'My Lost Keys',
+        'description': 'Lost my house keys yesterday.',
+        'category': 'Lost',
+        'location': 'Downtown',
+        'date': 'Feb 27, 2024',
+        'status': 'Active',
+      },
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Posts', style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: myPosts.isEmpty
+          ? const Center(child: Text('You haven\'t posted anything yet.'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: myPosts.length,
+              itemBuilder: (context, index) {
+                final post = myPosts[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: CardPost(
+                    title: post['title'],
+                    description: post['description'],
+                    category: post['category'],
+                    location: post['location'],
+                    date: post['date'],
+                    status: post['status'],
+                    isOwner: true,
+                    onEdit: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditPostScreen(post: post),
+                        ),
+                      );
+                    },
+                    onDelete: () {
+                      _showDeleteConfirmation(context, post['title']);
+                    },
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: Text('Are you sure you want to delete "$title"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Post deleted successfully')),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }
