@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../constants/color.dart';
-import '../constants/text_style.dart';
 
 class AddPostScreen extends StatefulWidget {
   const AddPostScreen({super.key});

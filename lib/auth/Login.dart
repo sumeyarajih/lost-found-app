@@ -1,6 +1,8 @@
 // lib/screens/auth/login.dart
 import 'package:flutter/material.dart';
+import 'package:lost_found_app/provider/splashprovider.dart';
 import 'package:lost_found_app/widget/custom_text_field.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/color.dart';
 import '../../constants/text_style.dart';
@@ -41,6 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.user != null) {
+        final splashProvider = Provider.of<SplashProvider>(context, listen: false);
+        await splashProvider.markSplashCompleted();
+
         if (mounted) {
           // Navigate to home screen or main app
           Navigator.pushReplacementNamed(context, '/home');
@@ -81,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Logo
                 Center(
                   child: Image.asset(
-                    'assets/images/lost-found-logo.png',
+                    'assets/images/lostfound-logo.png',
                     height: 120,
                     width: 120,
                   ),

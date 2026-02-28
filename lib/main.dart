@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lost_found_app/Screens/Home.dart';
 import 'package:lost_found_app/auth/Login.dart';
 import 'package:lost_found_app/auth/Signup.dart';
+import 'package:lost_found_app/provider/splashprovider.dart';
+import 'package:lost_found_app/splash/splash.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -15,20 +18,24 @@ void main() async {
   runApp(MyApp());
 }
 
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SignupScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/home': (context) => const MainNavigationScreen(),
-      },
+    return ChangeNotifierProvider(
+      create: (context) => SplashProvider(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const Splash2(),
+          '/signup': (context) => const SignupScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/home': (context) => const MainNavigationScreen(),
+        },
+      ),
     );
   }
 }

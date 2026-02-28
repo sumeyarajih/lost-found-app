@@ -2,8 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:lost_found_app/auth/Login.dart';
 import 'package:lost_found_app/auth/emailVerfication.dart';
+import 'package:lost_found_app/provider/splashprovider.dart';
 
 import 'package:lost_found_app/widget/custom_text_field.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/color.dart';
 import '../../constants/text_style.dart';
@@ -61,6 +63,10 @@ class _SignupScreenState extends State<SignupScreen> {
           'email': _emailController.text.trim(),
         });
 
+ final splashProvider = Provider.of<SplashProvider>(context, listen: false);
+      await splashProvider.markSplashCompleted();
+
+
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -107,7 +113,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 // Logo
                 Center(
                   child: Image.asset(
-                    'assets/images/lost-found-logo.png',
+                    'assets/images/lostfound-logo.png',
                     height: 100,
                     width: 100,
                   ),
