@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lost_found_app/Services/post_service.dart';
 import 'package:lost_found_app/auth/Login.dart';
+import 'package:lost_found_app/models/post.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/color.dart';
 import '../constants/text_style.dart';
@@ -108,84 +110,177 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class MyPostsScreen extends StatelessWidget {
+class MyPostsScreen extends StatefulWidget {
   const MyPostsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock user's posts
-    final List<Map<String, dynamic>> myPosts = [
-      {
-        'title': 'My Lost Keys',
-        'description': 'Lost my house keys yesterday.',
-        'category': 'Lost',
-        'location': 'Downtown',
-        'date': 'Feb 27, 2024',
-        'status': 'Active',
-      },
-    ];
+  State<MyPostsScreen> createState() => _MyPostsScreenState();
+}
 
+class _MyPostsScreenState extends State<MyPostsScreen> {
+  final PostService _postService = PostService();
+  final User? _user = Supabase.instance.client.auth.currentUser;
+  List<Post> _myPosts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMyPosts();
+  }
+
+  Future<void> _fetchMyPosts() async {
+    if (_user == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final posts = await _postService.getUserPosts(_user.id);
+      if (mounted) {
+        setState(() => _myPosts = posts);
+      }
+    } catch (e) {
+      print('Error fetching posts: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading posts: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _deletePost(String postId, String title) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: Text('Are you sure you want to delete "$title"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final success = await _postService.deletePost(postId);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post deleted successfully')),
+        );
+        await _fetchMyPosts(); // Refresh the list
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting post: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Unknown date';
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Posts', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: myPosts.isEmpty
-          ? const Center(child: Text('You haven\'t posted anything yet.'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: myPosts.length,
-              itemBuilder: (context, index) {
-                final post = myPosts[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: CardPost(
-                    title: post['title'],
-                    description: post['description'],
-                    category: post['category'],
-                    location: post['location'],
-                    date: post['date'],
-                    status: post['status'],
-                    isOwner: true,
-                    onEdit: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditPostScreen(post: post),
-                        ),
-                      );
-                    },
-                    onDelete: () {
-                      _showDeleteConfirmation(context, post['title']);
-                    },
-                  ),
-                );
-              },
-            ),
-    );
-  }
-
-  void _showDeleteConfirmation(BuildContext context, String title) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Post'),
-        content: Text('Are you sure you want to delete "$title"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Post deleted successfully')),
-              );
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchMyPosts,
           ),
         ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _myPosts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.post_add, size: 80, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No posts yet',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Create your first post!',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          // Navigate to add post screen (index 1 in bottom nav)
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                        ),
+                        child: const Text('Create Post'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchMyPosts,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _myPosts.length,
+                    itemBuilder: (context, index) {
+                      final post = _myPosts[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: CardPost(
+                          title: post.title,
+                          description: post.description ?? '',
+                          category: post.category,
+                          location: post.location ?? 'Unknown',
+                          date: _formatDate(post.createdAt),
+                          status: post.status,
+                          isOwner: true,
+                          onEdit: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditPostScreen(post: post),
+                              ),
+                            );
+                            if (result == true) {
+                              _fetchMyPosts(); // Refresh if post was updated
+                            }
+                          },
+                          onDelete: () => _deletePost(post.id!, post.title),
+                        ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 }

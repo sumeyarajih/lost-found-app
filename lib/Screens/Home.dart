@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:lost_found_app/Services/post_service.dart';
+import 'package:lost_found_app/models/post.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/color.dart';
 import '../constants/text_style.dart';
@@ -76,50 +78,51 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-class HomeContent extends StatelessWidget {
+
+
+
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock Data
-    final List<Map<String, String>> mockItems = [
-      {
-        'title': 'Lost Black Wallet',
-        'description': 'Lost near Central Park on Jan 15. Contains ID and credit cards.',
-        'category': 'Lost',
-        'location': 'Central Park',
-        'date': 'Jan 15, 2024',
-        'status': 'Active',
-      },
-      {
-        'title': 'Found Golden Retriever',
-        'description': 'Found a friendly golden retriever wandering near the library. No collar.',
-        'category': 'Found',
-        'location': 'Public Library',
-        'date': 'Jan 18, 2024',
-        'status': 'Active',
-        'imageUrl': 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=200&auto=format&fit=crop',
-      },
-      {
-        'title': 'Lost iPhone 13',
-        'description': 'iPhone 13 with a blue case lost on the subway.',
-        'category': 'Lost',
-        'location': 'Subway Line A',
-        'date': 'Jan 20, 2024',
-        'status': 'Claimed',
-        'imageUrl': 'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?q=80&w=200&auto=format&fit=crop',
-      },
-      {
-        'title': 'Found Car Keys',
-        'description': 'Found Toyota car keys in the parking lot of the mall.',
-        'category': 'Found',
-        'location': 'Town Mall',
-        'date': 'Jan 22, 2024',
-        'status': 'Active',
-        'imageUrl': 'https://images.unsplash.com/photo-1605462863863-10d9e47e15ee?q=80&w=200&auto=format&fit=crop',
-      },
-    ];
+  State<HomeContent> createState() => _HomeContentState();
+}
 
+class _HomeContentState extends State<HomeContent> {
+  final PostService _postService = PostService();
+  List<Post> _posts = [];
+  bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPosts();
+  }
+
+  Future<void> _fetchPosts() async {
+    setState(() => _isLoading = true);
+    try {
+      final posts = await _postService.getAllPosts();
+      setState(() => _posts = posts);
+    } catch (e) {
+      print('Error fetching posts: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  List<Post> get _filteredPosts {
+    if (_searchQuery.isEmpty) return _posts;
+    return _posts.where((post) =>
+      post.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+      (post.location?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
+    ).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         Padding(
@@ -128,9 +131,19 @@ class HomeContent extends StatelessWidget {
             children: [
               Expanded(
                 child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _searchQuery = value),
                   decoration: InputDecoration(
                     hintText: 'Search items...',
                     prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            })
+                        : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -148,7 +161,9 @@ class HomeContent extends StatelessWidget {
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.tune, color: AppColors.primary),
-                  onPressed: () {},
+                  onPressed: () {
+                    // TODO: Add filter functionality
+                  },
                 ),
               ),
             ],
@@ -165,39 +180,78 @@ class HomeContent extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const AllPostsScreen()),
-                  );
-                }, 
+                  ).then((_) => _fetchPosts()); // Refresh when returning
+                },
                 child: const Text('See All', style: TextStyle(color: AppColors.primary)),
               ),
             ],
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: mockItems.length,
-            itemBuilder: (context, index) {
-              final item = mockItems[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: CardPost(
-                  title: item['title']!,
-                  description: item['description']!,
-                  category: item['category']!,
-                  location: item['location']!,
-                  date: item['date']!,
-                  status: item['status']!,
-                  onClaim: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Claim request sent for ${item['title']}')),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _filteredPosts.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox, size: 80, color: Colors.grey[300]),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No posts yet',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Be the first to create a post!',
+                            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _filteredPosts.length > 5 ? 5 : _filteredPosts.length,
+                      itemBuilder: (context, index) {
+                        final post = _filteredPosts[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: CardPost(
+                            title: post.title,
+                            description: post.description ?? '',
+                            category: post.category,
+                            location: post.location ?? 'Unknown',
+                            date: _formatDate(post.createdAt),
+                            status: post.status,
+                          onClaim: () async {
+  final success = await _postService.claimItem(post.id!, Supabase.instance.client.auth.currentUser!.id);
+  if (success && mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Claim request sent for ${post.title}'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    _fetchPosts(); // Refresh the list
+  }
+},
+                          ),
+                        );
+                      },
+                    ),
         ),
       ],
     );
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Unknown date';
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }

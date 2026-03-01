@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lost_found_app/Services/post_service.dart';
 import '../constants/color.dart';
+import '../models/post.dart';
 
 class EditPostScreen extends StatefulWidget {
-  final Map<String, dynamic> post;
+  final Post post;
 
   const EditPostScreen({super.key, required this.post});
 
@@ -17,15 +19,18 @@ class _EditPostScreenState extends State<EditPostScreen> {
   late TextEditingController _descController;
   late TextEditingController _locationController;
   late TextEditingController _contactController;
+  
+  final PostService _postService = PostService();
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _category = widget.post['category'];
-    _titleController = TextEditingController(text: widget.post['title']);
-    _descController = TextEditingController(text: widget.post['description']);
-    _locationController = TextEditingController(text: widget.post['location']);
-    _contactController = TextEditingController(text: widget.post['contact'] ?? '');
+    _category = widget.post.category;
+    _titleController = TextEditingController(text: widget.post.title);
+    _descController = TextEditingController(text: widget.post.description ?? '');
+    _locationController = TextEditingController(text: widget.post.location ?? '');
+    _contactController = TextEditingController(text: widget.post.contactInfo ?? '');
   }
 
   @override
@@ -37,6 +42,46 @@ class _EditPostScreenState extends State<EditPostScreen> {
     super.dispose();
   }
 
+  Future<void> _updatePost() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final updatedPost = Post(
+        id: widget.post.id,
+        userId: widget.post.userId,
+        title: _titleController.text,
+        description: _descController.text,
+        category: _category,
+        location: _locationController.text,
+        date: widget.post.date, // Keep original date
+        contactInfo: _contactController.text,
+        status: widget.post.status,
+        createdAt: widget.post.createdAt,
+      );
+
+      final success = await _postService.updatePost(updatedPost);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post updated successfully!')),
+        );
+        Navigator.pop(context, true); // Return true to indicate update
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,7 +90,6 @@ class _EditPostScreenState extends State<EditPostScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -76,20 +120,14 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // Implementation for updating post
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Post updated successfully!')),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  onPressed: _isLoading ? null : _updatePost,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Update Post', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Update Post', style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
             ],
